@@ -42,11 +42,16 @@ module core_main (input clk, output reg[`DATARAM_WIDTH - 1:0] result);
 	/* Initialize Program Memory using this task: */
 	task progmem_initialize; begin
 		instr(OP_LDI, 10); /* Load immediate value to acc */
-		instr(OP_ST, 0); /* Store that value into data ram[0] */
+		instr(OP_ST, 0); /* Store that value into data ram[0] and output it into result */
 		instr(OP_ADD, 0); /* Add accumulator with ram[0] */
-		instr(OP_ADD, 5);
+		instr(OP_ADD, 5); /* Add accumulator again with ram[5] */
 		instr(OP_ST, 0);
-		instr(OP_JMP, 5);
+		/* Let's make a jump: */ 
+		instr(OP_LDI, 1); /* Load acc = 1 */
+		instr(OP_ST, 1); /* Move that into ram[1] */
+		instr(OP_LDI, 0); /* Load acc = 0 */
+		instr(OP_SUB, 1); /* Subtract acc - ram[1]. Should be -1, thus it'll jumpt on the next instruction: */
+		instr(OP_JMP, 'hFE); /* Jump now to address 0xFE */
 		
 		/* And so on ... */
 	end endtask
@@ -63,7 +68,7 @@ module core_main (input clk, output reg[`DATARAM_WIDTH - 1:0] result);
 	endtask
 
 /**************************************************/
-/*********** START OF CORE DECLARATION ***********/
+/*********** START OF CORE DECLARATION ************/
 /**************************************************/
 	
 	/* Program Memory: */
@@ -105,9 +110,8 @@ module core_main (input clk, output reg[`DATARAM_WIDTH - 1:0] result);
 	
 	/* For every positive clock edge: */
 	always @(posedge clk) begin
-		/* Non-blocking sequence: */
 		ip <= ip_next; /* Increment instruction pointer */
-		ir <= program_mem[ip_next]; /* Fetch instruction */
+		ir = program_mem[ip_next]; /* Fetch instruction */
 		mem_index <= (ir[`OPCFIELD] == OP_INDEX) ? memory_op : 0;
 		
 		case(ir[`OPCFIELD]) /* Decode Opcode using last 3 bits */
@@ -120,7 +124,7 @@ module core_main (input clk, output reg[`DATARAM_WIDTH - 1:0] result);
 	end
 	
 /**************************************************/
-/*********** END OF CORE DECLARATION ***********/
+/*********** END OF CORE DECLARATION **************/
 /**************************************************/
 endmodule
 
